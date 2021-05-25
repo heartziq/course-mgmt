@@ -11,6 +11,8 @@ import (
 	"github.com/heartziq/course-mgmt/server/handlers"
 )
 
+// var router = mux.NewRouter()
+
 func verifyAPIKey(next http.Handler) http.Handler {
 	newHandlerFunc := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -41,12 +43,13 @@ func verifyAPIKey(next http.Handler) http.Handler {
 	return newHandlerFunc
 }
 
-func main() {
+func createServer() http.Handler {
+	handler := mux.NewRouter()
 
-	router := mux.NewRouter()
+	// router := mux.NewRouter()
 
 	// Protected route - need to supply API_KEY
-	subR := router.NewRoute().Subrouter()
+	subR := handler.NewRoute().Subrouter()
 
 	// Course id must be in [A-Z]{2}\\d{4} format
 	// i.e. 2 Capital letters + 4 Random Digits
@@ -60,14 +63,45 @@ func main() {
 	subR.Use(verifyAPIKey)
 
 	// Public API - No API key is necessary for this
-	router.HandleFunc("/api/v1/courses", handlers.AllCourses)
+	handler.HandleFunc("/api/v1/courses", handlers.AllCourses)
 
 	// Only allow method POST - else, return Error 404 - Not Found
-	router.HandleFunc("/register", handlers.Register).Methods("POST")
-	router.HandleFunc("/login", handlers.Login).Methods("POST").Queries("NewKey", "{NewKey:True|False}")
+	handler.HandleFunc("/register", handlers.Register).Methods("POST")
+	handler.HandleFunc("/login", handlers.Login).Methods("POST").Queries("NewKey", "{NewKey:True|False}")
+
+	return handler
+}
+
+// NOTE: _test.go will not run main(), hence
+// any router config i.e. routers, subrouters, pathprefix etc
+// wont be added
+func main() {
+
+	// // router := mux.NewRouter()
+
+	// // Protected route - need to supply API_KEY
+	// subR := router.NewRoute().Subrouter()
+
+	// // Course id must be in [A-Z]{2}\\d{4} format
+	// // i.e. 2 Capital letters + 4 Random Digits
+	// // e.g. FB4513 or XZ1142
+	// subR.
+	// 	Methods("GET", "PUT", "POST", "DELETE").
+	// 	Path("/api/v1/courses/{courseid:[A-Z]{2}\\d{4}}").
+	// 	Queries("key", "{key}").
+	// 	HandlerFunc(handlers.Course)
+
+	// subR.Use(verifyAPIKey)
+
+	// // Public API - No API key is necessary for this
+	// router.HandleFunc("/api/v1/courses", handlers.AllCourses)
+
+	// // Only allow method POST - else, return Error 404 - Not Found
+	// router.HandleFunc("/register", handlers.Register).Methods("POST")
+	// router.HandleFunc("/login", handlers.Login).Methods("POST").Queries("NewKey", "{NewKey:True|False}")
 
 	c := make(chan os.Signal)
-
+	router := createServer()
 	go func() {
 		http.ListenAndServe(":5000", router)
 	}()

@@ -1,2 +1,3 @@
-## course-mgmt-master
-This. is. a master branch. Dont tamper
+# course-mgmt
+API that handles course management.
+Frontend support in the making.

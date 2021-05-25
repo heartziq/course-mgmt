@@ -12,9 +12,9 @@ import (
 
 	"github.com/gorilla/mux"
 	"golang.org/x/crypto/bcrypt"
-)
 
-// const DUMMY_PWD = "password123uSE#4r:0;L0v3~~~"
+	helper "github.com/heartziq/course-mgmt/server/helpers"
+)
 
 func hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
@@ -36,6 +36,74 @@ func Home(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Welcome to the REST API %v", key)
 }
 
+func Login(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "*")
+	cookie, err := r.Cookie("apiKey")
+	if err == http.ErrNoCookie {
+		// Set cookie
+		cookie = &http.Cookie{
+			Name:     "apiKey",
+			Value:    "",
+			HttpOnly: true,
+		}
+	}
+	// Get username and pwd from Body
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(
+			http.StatusUnprocessableEntity)
+		w.Write([]byte("422 - Please supply user information " +
+			"in JSON format"))
+
+		return
+	}
+
+	newUser := new(user)
+	json.Unmarshal(data, newUser)
+	if newUser.Password == "" || newUser.UserName == "" {
+		w.WriteHeader(
+			http.StatusUnprocessableEntity)
+		w.Write([]byte("422 - Please supply username & password "))
+
+		return
+	}
+
+	// retrieve user
+	user, err := GetOneUser(newUser.UserName)
+	// User does not exist in DB
+	if err != nil {
+		http.Error(w, "Wrong user/password combo", http.StatusUnauthorized)
+		return
+	}
+
+	if !helper.VerifyPassword([]byte(user.Password), newUser.Password) {
+		http.Error(w, "Wrong user/password combo", http.StatusUnauthorized)
+		return
+	}
+	responseMsg := "login success"
+	// generate new apikey and edit user rrecord
+	if genNewKey := mux.Vars(r)["NewKey"]; genNewKey == "True" {
+		newAPIKey := genAPIKey(user.Password)
+
+		// set expiry date
+		newExpiryDate := time.Now().Add(time.Hour * 24 * 7).Format(FORMAT)
+		EditUser(user.Password, newAPIKey, newExpiryDate)
+		cookie.Value = newAPIKey
+		responseMsg = "New api key generated"
+	} else {
+		cookie.Value = user.APIKey
+	}
+
+	http.SetCookie(w, cookie)
+	w.WriteHeader(http.StatusAccepted)
+	log.Println(responseMsg)
+	// w.Write([]byte(responseMsg))
+
+	json.NewEncoder(w).Encode(map[string]string{"access_token": user.APIKey})
+
+}
+
 func Register(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -43,7 +111,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// body
+	// Get username and pwd from Body
 	data, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(
@@ -64,10 +132,10 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	} else {
 		newUser := new(user)
 		json.Unmarshal(data, newUser)
-		if newUser.Password == "" {
+		if newUser.Password == "" || newUser.UserName == "" {
 			w.WriteHeader(
 				http.StatusUnprocessableEntity)
-			w.Write([]byte("422 - Please supply password "))
+			w.Write([]byte("422 - Please supply username & password "))
 
 			return
 		}
@@ -79,21 +147,33 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 			return
 		}
-
-		lastInsertedId, err := InsertUser(newUser)
+		fmt.Println(newUser)
+		_, err := InsertUser(newUser)
 		if err != nil {
 			panic(err)
 		}
 
-		fmt.Printf("lastInsertedId: %v\n", lastInsertedId)
+		cookie := &http.Cookie{
+			Name:     "apiKey",
+			Value:    newUser.APIKey,
+			HttpOnly: true,
+		}
+		http.SetCookie(w, cookie)
+
+		w.WriteHeader(http.StatusOK)
+		// w.Write([]byte(newUser.APIKey))
+		w.Write([]byte("status 200 - Registration successful"))
 
 	}
 
 }
 
 func AllCourses(w http.ResponseWriter, r *http.Request) {
-	c := GetRecords(db)
+	c := GetRecords()
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.WriteHeader(http.StatusAccepted)
 
+	// w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	json.NewEncoder(w).Encode(c)
 }
 
@@ -103,19 +183,19 @@ func Course(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == "GET" {
 		courseId := params["courseid"]
-		c, err := GetOneCourse(db, courseId)
+		c, err := GetOneCourse(courseId)
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			w.Write([]byte("404 - No course found"))
 			return
 		}
-
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		json.NewEncoder(w).Encode(c)
 	}
 	// DELETE a course
 	if r.Method == "DELETE" {
 		courseId := params["courseid"]
-		if ok, err := DeleteRecord(db, courseId); !ok {
+		if ok, err := DeleteRecord(courseId); !ok {
 			log.Printf("[handlers.go]: Error DeleteRecord() %v", err)
 			w.WriteHeader(http.StatusNotFound)
 			w.Write([]byte("404 - No course found"))
@@ -148,8 +228,8 @@ func Course(w http.ResponseWriter, r *http.Request) {
 				// check if course exists; add only if
 				// course does not exist
 
-				if _, err := GetOneCourse(db, courseId); err != nil {
-					InsertRecord(db, &courseId, newCourse.Title, newCourse.Details, newCourse.Trainer)
+				if _, err := GetOneCourse(courseId); err != nil {
+					InsertRecord(&courseId, newCourse.Title, newCourse.Details, newCourse.Trainer)
 					w.WriteHeader(http.StatusCreated)
 					msg := fmt.Sprintf("201 - Course added: %s\n",
 						courseId)
@@ -186,15 +266,15 @@ func Course(w http.ResponseWriter, r *http.Request) {
 				// check if course exists; add only if
 				// course does not exist
 				courseId := params["courseid"]
-				if _, err := GetOneCourse(db, courseId); err != nil {
+				if _, err := GetOneCourse(courseId); err != nil {
 
-					InsertRecord(db, &courseId, newCourse.Title, newCourse.Details, newCourse.Trainer)
+					InsertRecord(&courseId, newCourse.Title, newCourse.Details, newCourse.Trainer)
 					w.WriteHeader(http.StatusCreated)
 					w.Write([]byte("201 - Course added: " +
 						courseId))
 				} else {
 					// update course
-					EditRecord(db, courseId, newCourse.Title, newCourse.Details, newCourse.Trainer)
+					EditRecord(courseId, newCourse.Title, newCourse.Details, newCourse.Trainer)
 					w.WriteHeader(http.StatusNoContent)
 				}
 			} else {

@@ -17,6 +17,7 @@ func verifyAPIKey(next http.Handler) http.Handler {
 		vars := mux.Vars(r)
 
 		if key, exist := vars["key"]; exist {
+
 			userId, err := handlers.IsKeyValid(key)
 			if err == nil {
 				log.Printf("[server] Key is valid, WElcome %s\n", userId)
@@ -24,6 +25,7 @@ func verifyAPIKey(next http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			} else {
+
 				http.Error(w, fmt.Sprintf("Forbidden Access - %v", err), http.StatusForbidden)
 				// can later change to redirect
 				return
@@ -59,7 +61,10 @@ func main() {
 
 	// Public API - No API key is necessary for this
 	router.HandleFunc("/api/v1/courses", handlers.AllCourses)
+
+	// Only allow method POST - else, return Error 404 - Not Found
 	router.HandleFunc("/register", handlers.Register).Methods("POST")
+	router.HandleFunc("/login", handlers.Login).Methods("POST").Queries("NewKey", "{NewKey:True|False}")
 
 	c := make(chan os.Signal)
 

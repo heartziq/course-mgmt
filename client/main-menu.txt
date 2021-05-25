@@ -1,0 +1,14 @@
+=========================================
+Course Management (v2.0)
+(Register or Login to obtain APIKey)
+=========================================
+1. Register New User
+2. Login
+3. Display Course(s)
+4. Add New Course
+5. Edit Course Details
+6. Delete a Course
+7. Renew APIKey [Select this option if your APIKey has expired]
+
+
+Select your choice ('Enter' to quit): 

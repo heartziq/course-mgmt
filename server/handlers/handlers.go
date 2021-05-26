@@ -182,6 +182,7 @@ func Course(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
 	if r.Method == "GET" {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		courseId := params["courseid"]
 		c, err := GetOneCourse(courseId)
 		if err != nil {
@@ -189,7 +190,7 @@ func Course(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("404 - No course found"))
 			return
 		}
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+
 		json.NewEncoder(w).Encode(c)
 	}
 	// DELETE a course

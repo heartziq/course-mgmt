@@ -57,9 +57,6 @@ function useAuth() {
 
 function App() {
 
-
-
-
   const [cookies, setCookie] = useCookies(['name']);
 
   // function onChange(newName) {
@@ -81,9 +78,6 @@ function App() {
                 <Link to="/">Browse All</Link>
               </li>
               <li>
-                <Link to="/CourseDetails">Details</Link>
-              </li>
-              <li>
                 <Link to="/Login">Login</Link>
               </li>
             </ul>
@@ -98,11 +92,9 @@ function App() {
             <Route path="/Login">
               <Login useAuth={useAuth} />
             </Route>
-            <PrivateRoute path="/CourseDetails/:id" useAuth={useAuth}>
+            <PrivateRoute path="/CourseDetails" useAuth={useAuth}>
               <CourseDetails />
             </PrivateRoute>
-
-
           </Switch>
         </div>
       </Router>

@@ -27,7 +27,7 @@ func verifyAPIKey(next http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			} else {
-
+				w.Header().Set("Access-Control-Allow-Origin", "*")
 				http.Error(w, fmt.Sprintf("Forbidden Access - %v", err), http.StatusForbidden)
 				// can later change to redirect
 				return
@@ -35,7 +35,7 @@ func verifyAPIKey(next http.Handler) http.Handler {
 			}
 
 		}
-
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		http.Error(w, "Forbidden Access - No API_KEY provided", http.StatusForbidden)
 
 	})

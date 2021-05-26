@@ -10,14 +10,14 @@ export default function PrivateRoute({ useAuth, children, ...rest }) {
             token={auth.token}
             {...rest}
             render={({ location }) => {
-                // console.log('PrivateRoute.js', location)
+                
                 if (auth.token)
                     return (children)
                 else
                     return (<Redirect
                         to={{
                             pathname: "/Login",
-                            state: { from: location }
+                            state: { from: location, message: "Login" }
                         }}
                     />)
                 }

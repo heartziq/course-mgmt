@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { Fragment, useState } from 'react';
 // import Cookies from 'js-cookie';
 // import {useCookies} from 'react-cookie';
 
-import {useHistory, useLocation} from 'react-router-dom';
+import { useHistory, useLocation } from 'react-router-dom';
 
 
 export default function Login({ useAuth }) {
@@ -11,6 +11,10 @@ export default function Login({ useAuth }) {
   let auth = useAuth()
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  // const [message, setMessage] = useState("")
+
+  let { message } = location.state || ""
+  
 
   const baseURL = "http://localhost:5000/login?NewKey=False";
 
@@ -28,11 +32,11 @@ export default function Login({ useAuth }) {
       })
       let apiKeyDetails = await res.json()
       let token = apiKeyDetails["access_token"]
-      // console.log(token)
-
+      
+      
       // Get previous state.from
       let { from } = location.state || { from: { pathname: "/" } };
-      console.log('Login.js: ', location)
+ 
 
       // Redirect (back) to state.from
       auth.signin(token, () => history.replace(from))
@@ -44,17 +48,21 @@ export default function Login({ useAuth }) {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <label>
-        Name:
+    <Fragment>
+      <p>{message}</p>
+      <form onSubmit={handleSubmit}>
+        <label>
+          Name:
             <input type="text" value={username} onChange={e => setUsername(e.target.value.trim())} />
-      </label>
-      <label>
-        Password:
+        </label>
+        <label>
+          Password:
             <input type="password" value={password} onChange={e => setPassword(e.target.value.trim())} />
-      </label>
-      <input type="submit" value="Submit" />
-    </form>
+        </label>
+        <input type="submit" value="Submit" />
+      </form>
+    </Fragment>
+
   );
 }
 

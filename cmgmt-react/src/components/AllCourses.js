@@ -41,19 +41,22 @@ export default function AllCourses() {
                     // How to pass props to Link.. {id and key}
                     courseList
                         .map(course => (
-                            <Link
-                                key={course.id}
-                                to={{
-                                    pathname: "/CourseDetails/"+course.id,
-                                    search: `?id=${course.id}`,
-                                    state: {
-                                        fromDashboard: true,
-                                        token: "1469bb5bc0b9129857f01cb1ea8d7d1c6125e4cba38874a8b54af9e32a525351",
-                                    }
-                                }}
-                            >
-                                {course.Title}
-                            </Link>
+                            <li key={course.id}>
+                                <Link
+                                    to={{
+                                        pathname: "/CourseDetails",
+                                        search: `?id=${course.id}`,
+                                        state: {
+                                            fromDashboard: true,
+                                            token: "1469bb5bc0b9129857f01cb1ea8d7d1c6125e4cba38874a8b54af9e32a525351",
+                                        }
+                                    }}
+                                >
+                                    {course.Title}
+
+                                </Link>
+                            </li>
+
 
                         ))
                 }

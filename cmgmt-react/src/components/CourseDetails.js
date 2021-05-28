@@ -4,22 +4,18 @@ import qs from 'query-string';
 
 
 const baseURL = "http://localhost:5000/api/v1/courses"
-// http://localhost:5000/api/v1/courses/LT5042?key=1469bb5bc0b9129857f01cb1ea8d7d1c6125e4cba38874a8b54af9e32a525351
 
-function renderError() {
-    return (
-        <h1>API key expired. pls renew</h1>
-    )
-}
 export default function CourseDetails() {
-
+ 
     const [course, setCourse] = useState({})
     const [status, setStatus] = useState(null)
 
+    // Get APIKey from state
     let location = useLocation();
     const {token} = location.state;
 
-    let params = qs.parse(location.search)
+    // Get courseId from query param
+    let {id} = qs.parse(location.search)
 
     useEffect(
         () => {
@@ -27,7 +23,7 @@ export default function CourseDetails() {
 
                 try {
                     let httpResponse = await fetch(
-                        baseURL + `/${params.id}?key=${token}`,
+                        baseURL + `/${id}?key=${token}`,
                         { mode: "cors" }
                     )
                     setStatus(httpResponse.status)

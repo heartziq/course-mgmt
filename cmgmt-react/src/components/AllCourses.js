@@ -1,14 +1,11 @@
 import React, { useEffect, useState } from 'react';
-// import PrivateRoute from './PrivateRoute';
 import { Link } from 'react-router-dom';
 
-// define function (React.Component)
-
-// Refactor to config
 const baseURL = "http://localhost:5000/api/v1/courses"
 
-export default function AllCourses() {
+export default function AllCourses({ useAuth }) {
     // define states
+    let auth = useAuth();
 
     const [error, setError] = useState(null);
     const [isLoaded, setIsLoaded] = useState(false);
@@ -48,7 +45,7 @@ export default function AllCourses() {
                                         search: `?id=${course.id}`,
                                         state: {
                                             fromDashboard: true,
-                                            token: "1469bb5bc0b9129857f01cb1ea8d7d1c6125e4cba38874a8b54af9e32a525351",
+                                            token: auth.token,
                                         }
                                     }}
                                 >

@@ -56,7 +56,6 @@ function useAuth() {
 }
 
 function App() {
-
   const [cookies, setCookie] = useCookies(['name']);
 
   // function onChange(newName) {
@@ -87,7 +86,7 @@ function App() {
           renders the first one that matches the current URL. */}
           <Switch>
             <Route path="/" exact >
-              <AllCourses />
+              <AllCourses useAuth={useAuth} />
             </Route>
             <Route path="/Login">
               <Login useAuth={useAuth} />

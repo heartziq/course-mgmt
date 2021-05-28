@@ -13,6 +13,25 @@ import (
 
 // var router = mux.NewRouter()
 
+func addAuthHeader(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token, err := r.Cookie("greet")
+		if err != nil {
+			log.Printf("Error: Cookie not found %v", err)
+			log.Println("Auth will fail")
+
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte("Unauthorized access. Pls login"))
+
+			return
+		}
+		bearerToken := fmt.Sprintf("Bearer %s", token.Value)
+		r.Header.Set("Authorization", bearerToken)
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func verifyAPIKey(next http.Handler) http.Handler {
 	newHandlerFunc := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -69,6 +88,12 @@ func createServer() http.Handler {
 	handler.HandleFunc("/register", handlers.Register).Methods("POST")
 	handler.HandleFunc("/login", handlers.Login).Methods("POST").Queries("NewKey", "{NewKey:True|False}")
 
+	// draft handler - for learning/prac purposes
+	handler.HandleFunc("/draft", handlers.TestDraftCookie) // get cookie
+
+	// retrieve token
+	// handler.Handle("/dashboard/{id}", addAuthHeader(http.HandlerFunc(handlers.TestGetToken)))
+	handler.HandleFunc("/dashboard/{id}", handlers.TestGetToken)
 	return handler
 }
 

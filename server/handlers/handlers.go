@@ -173,7 +173,6 @@ func AllCourses(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(http.StatusAccepted)
 
-	// w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	json.NewEncoder(w).Encode(c)
 }
 
@@ -288,4 +287,49 @@ func Course(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
+}
+
+func TestDraftCookie(w http.ResponseWriter, r *http.Request) {
+	// w.Header().Set("Access-Control-Allow-Origin", "*")
+	cookie := &http.Cookie{
+		Name:     "token",
+		Value:    "afoiwfoninvawv",
+		HttpOnly: true,
+	}
+	http.SetCookie(w, cookie)
+	// w.Header().Set("Content-Type", "application/json")
+
+	w.WriteHeader(http.StatusAccepted)
+	w.Write([]byte("cookie set"))
+
+	// data := map[string]string{"token": "afoiwfoninvawv"}
+
+	// json.NewEncoder(w).Encode(data)
+}
+
+func TestGetToken(w http.ResponseWriter, r *http.Request) {
+	// w.Header().Set("Access-Control-Allow-Origin", "*")
+	if c, err := r.Cookie("token"); err == nil {
+		log.Printf("c: %v\n", c.Value)
+		if c.Value == "afoiwfoninvawv" {
+			w.WriteHeader(http.StatusAccepted)
+			w.Write([]byte("logged in OK"))
+
+			return
+		}
+	}
+	// mechanism := strings.Split(r.Header.Get("Authorization"), " ")
+	// log.Printf("token found %v\n", mechanism)
+	// if len(mechanism) > 1 && mechanism[0] == "Bearer" {
+	// 	if token := mechanism[1]; token == "afoiwfoninvawv" {
+	// 		w.WriteHeader(http.StatusAccepted)
+	// 		w.Write([]byte("ok"))
+
+	// 		return
+	// 	}
+	// }
+
+	w.WriteHeader(http.StatusUnauthorized)
+	w.Write([]byte("Not found 401"))
+
 }

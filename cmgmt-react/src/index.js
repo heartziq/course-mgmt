@@ -14,8 +14,13 @@ import CourseDetails from './components/CourseDetails';
 import AllCourses from './components/AllCourses';
 import Login from './components/Login';
 import PrivateRoute from './components/PrivateRoute';
+import Dashboard from './components/Dashboard';
+
+// Page not found
+import PageNotFound from './components/NotFound';
 
 import { useEffect } from 'react';
+import NotFound from './components/NotFound';
 
 
 export default function Root() {
@@ -94,6 +99,10 @@ function App() {
             <PrivateRoute path="/CourseDetails" useAuth={useAuth}>
               <CourseDetails />
             </PrivateRoute>
+            <PrivateRoute path="/Dashboard/:id" useAuth={useAuth}>
+              <Dashboard />
+            </PrivateRoute>
+            <Route component={PageNotFound} />
           </Switch>
         </div>
       </Router>

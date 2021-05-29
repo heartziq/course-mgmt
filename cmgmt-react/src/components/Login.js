@@ -1,6 +1,6 @@
 import React, { Fragment, useState } from 'react';
 
-import { useHistory, useLocation } from 'react-router-dom';
+import { useHistory, useLocation, Link } from 'react-router-dom';
 
 
 export default function Login({ useAuth }) {
@@ -11,9 +11,9 @@ export default function Login({ useAuth }) {
   const [password, setPassword] = useState("");
 
   let { message } = location.state || ""
-  
 
-  const baseURL = "http://localhost:5000/login?NewKey=False";
+
+  const baseURL = "/login?NewKey=False";
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -21,7 +21,6 @@ export default function Login({ useAuth }) {
     try {
       let res = await fetch(baseURL, {
         method: "POST",
-        mode: "cors",
         body: JSON.stringify({
           "username": username,
           "password": password,
@@ -29,13 +28,15 @@ export default function Login({ useAuth }) {
       })
       let apiKeyDetails = await res.json()
       let token = apiKeyDetails["access_token"]
-      
-      
+      console.log("token: ", token)
+
       // Get previous state.from
       let { from } = location.state || { from: { pathname: "/" } };
- 
+
+      // Update auth.token and,
       // Redirect (back) to state.from
       auth.signin(token, () => history.replace(from))
+      // auth.signout(token)
 
     } catch (err) {
       console.log("error occured while fetching")
@@ -43,21 +44,20 @@ export default function Login({ useAuth }) {
     }
   }
 
-  return (
-    <Fragment>
-      <p>{message}</p>
-      <form onSubmit={handleSubmit}>
-        <label>
-          Name:
-            <input type="text" value={username} onChange={e => setUsername(e.target.value.trim())} />
-        </label>
-        <label>
-          Password:
-            <input type="password" value={password} onChange={e => setPassword(e.target.value.trim())} />
-        </label>
-        <input type="submit" value="Submit" />
-      </form>
-    </Fragment>
+  return (<Fragment>
+    <p>{message}</p>
+    <form onSubmit={handleSubmit}>
+      <label>
+        Name:
+          <input type="text" value={username} onChange={e => setUsername(e.target.value.trim())} />
+      </label>
+      <label>
+        Password:
+          <input type="password" value={password} onChange={e => setPassword(e.target.value.trim())} />
+      </label>
+      <input type="submit" value="Submit" />
+    </form>
+  </Fragment>)
 
-  );
+
 }

@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -34,74 +35,6 @@ func genAPIKey(hashedPwd string) string {
 func Home(w http.ResponseWriter, r *http.Request) {
 	key := r.FormValue("key")
 	fmt.Fprintf(w, "Welcome to the REST API %v", key)
-}
-
-func Login(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "*")
-	cookie, err := r.Cookie("apiKey")
-	if err == http.ErrNoCookie {
-		// Set cookie
-		cookie = &http.Cookie{
-			Name:     "apiKey",
-			Value:    "",
-			HttpOnly: true,
-		}
-	}
-	// Get username and pwd from Body
-	data, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		w.WriteHeader(
-			http.StatusUnprocessableEntity)
-		w.Write([]byte("422 - Please supply user information " +
-			"in JSON format"))
-
-		return
-	}
-
-	newUser := new(user)
-	json.Unmarshal(data, newUser)
-	if newUser.Password == "" || newUser.UserName == "" {
-		w.WriteHeader(
-			http.StatusUnprocessableEntity)
-		w.Write([]byte("422 - Please supply username & password "))
-
-		return
-	}
-
-	// retrieve user
-	user, err := GetOneUser(newUser.UserName)
-	// User does not exist in DB
-	if err != nil {
-		http.Error(w, "Wrong user/password combo", http.StatusUnauthorized)
-		return
-	}
-
-	if !helper.VerifyPassword([]byte(user.Password), newUser.Password) {
-		http.Error(w, "Wrong user/password combo", http.StatusUnauthorized)
-		return
-	}
-	responseMsg := "login success"
-	// generate new apikey and edit user rrecord
-	if genNewKey := mux.Vars(r)["NewKey"]; genNewKey == "True" {
-		newAPIKey := genAPIKey(user.Password)
-
-		// set expiry date
-		newExpiryDate := time.Now().Add(time.Hour * 24 * 7).Format(FORMAT)
-		EditUser(user.Password, newAPIKey, newExpiryDate)
-		cookie.Value = newAPIKey
-		responseMsg = "New api key generated"
-	} else {
-		cookie.Value = user.APIKey
-	}
-
-	http.SetCookie(w, cookie)
-	w.WriteHeader(http.StatusAccepted)
-	log.Println(responseMsg)
-	// w.Write([]byte(responseMsg))
-
-	json.NewEncoder(w).Encode(map[string]string{"access_token": user.APIKey})
-
 }
 
 func Register(w http.ResponseWriter, r *http.Request) {
@@ -181,7 +114,8 @@ func Course(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
 	if r.Method == "GET" {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		// w.Header().Set("Access-Control-Allow-Origin", "*")
 		courseId := params["courseid"]
 		c, err := GetOneCourse(courseId)
 		if err != nil {
@@ -289,45 +223,135 @@ func Course(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func TestDraftCookie(w http.ResponseWriter, r *http.Request) {
-	// w.Header().Set("Access-Control-Allow-Origin", "*")
+func Login(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "*")
+
+	// Get username and pwd from Body
+	data, err := ioutil.ReadAll(r.Body)
+
+	// No user/pwd supplied
+	if err != nil {
+		w.WriteHeader(
+			http.StatusUnprocessableEntity)
+		w.Write([]byte("422 - Please supply user information " +
+			"in JSON format"))
+
+		return
+	}
+
+	newUser := new(user)
+	json.Unmarshal(data, newUser) // let FrontEnd do the check of empty input
+
+	// retrieve user
+	retrievedUser, err := GetOneUser(newUser.UserName)
+	// User does not exist in DB
+	if err != nil {
+		log.Printf("error retrieving user: %v\n", err)
+		// Fake user account to simulate user's existence in DB
+		retrievedUser = &user{
+			Password: "awfep9384utw5vu2m~~",
+		}
+	}
+
+	if !helper.VerifyPassword([]byte(retrievedUser.Password), newUser.Password) {
+		http.Error(w, "Wrong user/password combo", http.StatusUnauthorized) // 401
+		return
+	}
+
+	// ON LOGIN SUCCESS //
+
+	// Create jwt token
+	jwt, err := helper.GenToken(helper.KEY, retrievedUser.Id)
+	if err != nil {
+		panic(err)
+	}
+
+	// Send jwt via cookie
 	cookie := &http.Cookie{
-		Name:     "token",
-		Value:    "afoiwfoninvawv",
+		Name:     "jwt",
+		Value:    jwt,
 		HttpOnly: true,
 	}
 	http.SetCookie(w, cookie)
-	// w.Header().Set("Content-Type", "application/json")
+
+	// generate new apikey and edit user rrecord
+	// if genNewKey := mux.Vars(r)["NewKey"]; genNewKey == "True" {
+	// 	newAPIKey := genAPIKey(retrievedUser.Password)
+
+	// 	// set expiry date
+	// 	newExpiryDate := time.Now().Add(time.Hour * 24 * 7).Format(FORMAT)
+	// 	EditUser(retrievedUser.Password, newAPIKey, newExpiryDate)
+	// 	cookie.Value = newAPIKey
+	// 	responseMsg = "New api key generated"
+	// } else {
+	// 	cookie.Value = retrievedUser.APIKey
+	// }
 
 	w.WriteHeader(http.StatusAccepted)
-	w.Write([]byte("cookie set"))
 
-	// data := map[string]string{"token": "afoiwfoninvawv"}
+	// Send APIKey via json
+	json.NewEncoder(w).Encode(map[string]string{"access_token": retrievedUser.APIKey})
 
-	// json.NewEncoder(w).Encode(data)
+}
+
+func TestDraftCookie(w http.ResponseWriter, r *http.Request) {
+	// w.Header().Set("Access-Control-Allow-Origin", "*")
+	// cookie := &http.Cookie{
+	// 	Name:     "token",
+	// 	Value:    "afoiwfoninvawv",
+	// 	HttpOnly: true,
+	// }
+	// http.SetCookie(w, cookie)
+	// w.Header().Set("Content-Type", "application/json")
+
+	cookie := &http.Cookie{
+		Name:     "jwt",
+		Value:    "somejwttoken",
+		HttpOnly: true,
+	}
+	http.SetCookie(w, cookie)
+
+	w.WriteHeader(http.StatusAccepted)
+	// w.Write([]byte("cookie set"))
+
+	data := map[string]string{"token": "afoiwfoninvawv"}
+
+	json.NewEncoder(w).Encode(data)
 }
 
 func TestGetToken(w http.ResponseWriter, r *http.Request) {
 	// w.Header().Set("Access-Control-Allow-Origin", "*")
-	if c, err := r.Cookie("token"); err == nil {
-		log.Printf("c: %v\n", c.Value)
-		if c.Value == "afoiwfoninvawv" {
-			w.WriteHeader(http.StatusAccepted)
-			w.Write([]byte("logged in OK"))
-
-			return
-		}
-	}
-	// mechanism := strings.Split(r.Header.Get("Authorization"), " ")
-	// log.Printf("token found %v\n", mechanism)
-	// if len(mechanism) > 1 && mechanism[0] == "Bearer" {
-	// 	if token := mechanism[1]; token == "afoiwfoninvawv" {
+	// if c, err := r.Cookie("token"); err == nil {
+	// 	log.Printf("c: %v\n", c.Value)
+	// 	if c.Value == "afoiwfoninvawv" {
 	// 		w.WriteHeader(http.StatusAccepted)
-	// 		w.Write([]byte("ok"))
+	// 		w.Write([]byte("logged in OK"))
 
 	// 		return
 	// 	}
 	// }
+
+	if c, err := r.Cookie("jwt"); err == nil {
+		log.Printf("jwt: %v\n", c.Value)
+
+		mechanism := strings.Split(r.Header.Get("Authorization"), " ")
+		log.Printf("token found %v\n", mechanism)
+		if len(mechanism) > 1 && mechanism[0] == "Bearer" {
+			if token := mechanism[1]; token == "afoiwfoninvawv" {
+				w.WriteHeader(http.StatusAccepted)
+				w.Write([]byte("ok"))
+
+				return
+			}
+		}
+
+		w.WriteHeader(http.StatusAccepted)
+		w.Write([]byte("logged in OK"))
+
+		return
+
+	}
 
 	w.WriteHeader(http.StatusUnauthorized)
 	w.Write([]byte("Not found 401"))

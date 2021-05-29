@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { Fragment, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const baseURL = "http://localhost:5000/api/v1/courses"
@@ -33,31 +33,34 @@ export default function AllCourses({ useAuth }) {
     } else {
         console.log(courseList);
         return (
-            <ul>
-                {
-                    // How to pass props to Link.. {id and key}
-                    courseList
-                        .map(course => (
-                            <li key={course.id}>
-                                <Link
-                                    to={{
-                                        pathname: "/CourseDetails",
-                                        search: `?id=${course.id}`,
-                                        state: {
-                                            fromDashboard: true,
-                                            token: auth.token,
-                                        }
-                                    }}
-                                >
-                                    {course.Title}
+            <Fragment>
+            <h1>auth.token == {auth.token}</h1>
+                <ul>
+                    {
+                        // How to pass props to Link.. {id and key}
+                        courseList
+                            .map(course => (
+                                <li key={course.id}>
+                                    <Link
+                                        to={{
+                                            pathname: "/CourseDetails",
+                                            search: `?id=${course.id}`,
+                                            state: {
+                                                fromDashboard: true,
+                                            }
+                                        }}
+                                    >
+                                        {course.Title}
 
-                                </Link>
-                            </li>
+                                    </Link>
+                                </li>
 
 
-                        ))
-                }
-            </ul>
+                            ))
+                    }
+                </ul>
+            </Fragment>
+
         )
 
     }

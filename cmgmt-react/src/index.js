@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import {
   BrowserRouter as Router,
@@ -19,9 +19,6 @@ import Dashboard from './components/Dashboard';
 // Page not found
 import PageNotFound from './components/NotFound';
 
-import { useEffect } from 'react';
-import NotFound from './components/NotFound';
-
 
 export default function Root() {
   return (
@@ -31,6 +28,26 @@ export default function Root() {
   )
 }
 const authContext = createContext();
+
+function Draft() {
+  let auth = useAuth()
+  useEffect(() =>
+    fetch("/draft")
+      .then(res => res.json())
+      .then(({ token }) => {
+        
+        auth.signout(token)
+      }), [])
+  return (
+    <div>
+      <h1>coo</h1>
+      <Link to="/Dashboard/4">
+        to dashboard
+      </Link>
+    </div>
+
+  )
+}
 
 function ProvideAuth({ children }) {
   const auth = useProvideAuth();
@@ -45,8 +62,9 @@ function useProvideAuth() {
     callback()
   };
 
-  const signout = () => {
-    setToken(null)
+  const signout = (token="") => {
+    let newTokenValue = token || null
+    setToken(newTokenValue)
   };
 
   return {
@@ -84,6 +102,9 @@ function App() {
               <li>
                 <Link to="/Login">Login</Link>
               </li>
+              <li>
+                <Link to="/draft">Get cookie</Link>
+              </li>
             </ul>
           </nav>
 
@@ -97,11 +118,14 @@ function App() {
               <Login useAuth={useAuth} />
             </Route>
             <PrivateRoute path="/CourseDetails" useAuth={useAuth}>
-              <CourseDetails />
+              <CourseDetails useAuth={useAuth} />
             </PrivateRoute>
-            <PrivateRoute path="/Dashboard/:id" useAuth={useAuth}>
-              <Dashboard />
-            </PrivateRoute>
+            <Route path="/Dashboard/:id">
+              <Dashboard useAuth={useAuth} />
+            </Route>
+            <Route path="/draft">
+              <Draft />
+            </Route>
             <Route component={PageNotFound} />
           </Switch>
         </div>

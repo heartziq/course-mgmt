@@ -60,7 +60,7 @@ func IsKeyValid(key string) (string, error) {
 	timeWhenKeyExpires, _ := time.Parse(FORMAT, u.Expiry)
 	// time.Now().Add(time.Hour * 24 * 10) // set this as param to force expire token
 	if timeWhenKeyExpires.Before(time.Now()) {
-		return "", errors.New("expired API_KEY, Login to renew")
+		return "", errors.New("Expired API_KEY")
 	}
 
 	return u.Id, nil
@@ -86,8 +86,8 @@ func PopulateNewUser(u *user, pwd string) error {
 
 func GetOneUser(username string) (*user, error) {
 	c := user{}
-	row := db.QueryRow("SELECT password, api_key From my_db.Users WHERE username=?", username)
-	if err := row.Scan(&c.Password, &c.APIKey); err != nil {
+	row := db.QueryRow("SELECT id, password, api_key From my_db.Users WHERE username=?", username)
+	if err := row.Scan(&c.Id, &c.Password, &c.APIKey); err != nil {
 		return nil, errors.New("Error scanning")
 	}
 	return &c, nil

@@ -11,11 +11,9 @@ import (
 	"github.com/heartziq/course-mgmt/server/handlers"
 )
 
-// var router = mux.NewRouter()
-
 func addAuthHeader(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token, err := r.Cookie("greet")
+		token, err := r.Cookie("jwt")
 		if err != nil {
 			log.Printf("Error: Cookie not found %v", err)
 			log.Println("Auth will fail")
@@ -34,7 +32,13 @@ func addAuthHeader(next http.Handler) http.Handler {
 
 func verifyAPIKey(next http.Handler) http.Handler {
 	newHandlerFunc := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
+		log.Println("This prints...")
+		if cookie, err := r.Cookie("jwt"); err == nil {
+			// add to BEARER token http AUTHORIZATION
+			log.Printf("[Cookie] name: %s, value: %s\n", cookie.Name, cookie.Value)
+		} else {
+			log.Println("no jwt cookie found")
+		}
 		vars := mux.Vars(r)
 
 		if key, exist := vars["key"]; exist {
@@ -47,7 +51,12 @@ func verifyAPIKey(next http.Handler) http.Handler {
 				return
 			} else {
 				w.Header().Set("Access-Control-Allow-Origin", "*")
-				http.Error(w, fmt.Sprintf("Forbidden Access - %v", err), http.StatusForbidden)
+				if err.Error() == "Invalid API_KEY" {
+					http.Error(w, fmt.Sprintf("error - %v", err), http.StatusBadRequest) //400
+					// can later change to redirect
+					return
+				}
+				http.Error(w, fmt.Sprintf("error - %v", err), http.StatusForbidden) // 403
 				// can later change to redirect
 				return
 
@@ -55,7 +64,7 @@ func verifyAPIKey(next http.Handler) http.Handler {
 
 		}
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		http.Error(w, "Forbidden Access - No API_KEY provided", http.StatusForbidden)
+		http.Error(w, "Forbidden Access - No API_KEY provided", http.StatusUnauthorized) // 401
 
 	})
 
@@ -92,38 +101,15 @@ func createServer() http.Handler {
 	handler.HandleFunc("/draft", handlers.TestDraftCookie) // get cookie
 
 	// retrieve token
-	// handler.Handle("/dashboard/{id}", addAuthHeader(http.HandlerFunc(handlers.TestGetToken)))
-	handler.HandleFunc("/dashboard/{id}", handlers.TestGetToken)
+	handler.Handle("/dashboard/{id}", addAuthHeader(http.HandlerFunc(handlers.TestGetToken)))
+	// handler.HandleFunc("/dashboard/{id}", handlers.TestGetToken)
 	return handler
 }
 
 // NOTE: _test.go will not run main(), hence
 // any router config i.e. routers, subrouters, pathprefix etc
-// wont be added
+// won't be added
 func main() {
-
-	// // router := mux.NewRouter()
-
-	// // Protected route - need to supply API_KEY
-	// subR := router.NewRoute().Subrouter()
-
-	// // Course id must be in [A-Z]{2}\\d{4} format
-	// // i.e. 2 Capital letters + 4 Random Digits
-	// // e.g. FB4513 or XZ1142
-	// subR.
-	// 	Methods("GET", "PUT", "POST", "DELETE").
-	// 	Path("/api/v1/courses/{courseid:[A-Z]{2}\\d{4}}").
-	// 	Queries("key", "{key}").
-	// 	HandlerFunc(handlers.Course)
-
-	// subR.Use(verifyAPIKey)
-
-	// // Public API - No API key is necessary for this
-	// router.HandleFunc("/api/v1/courses", handlers.AllCourses)
-
-	// // Only allow method POST - else, return Error 404 - Not Found
-	// router.HandleFunc("/register", handlers.Register).Methods("POST")
-	// router.HandleFunc("/login", handlers.Login).Methods("POST").Queries("NewKey", "{NewKey:True|False}")
 
 	c := make(chan os.Signal)
 	router := createServer()

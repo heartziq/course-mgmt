@@ -114,7 +114,8 @@ func main() {
 	c := make(chan os.Signal)
 	router := createServer()
 	go func() {
-		http.ListenAndServe(":5000", router)
+		http.ListenAndServeTLS(":5000", "cert/cert.pem", "cert/key.pem", router)
+		// http.ListenAndServe(":5000", router)
 	}()
 	signal.Notify(c, os.Interrupt) // User abruptly quit - Ctrl-C
 	<-c

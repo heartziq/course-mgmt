@@ -34,7 +34,7 @@ func initSecretKey() string {
 	}
 	// log.Fatal(path) // for example /home/user
 	//
-	file, err := os.Open(path + "\\" + SECRET_FILE)
+	file, err := os.Open(path + "\\helpers\\" + SECRET_FILE)
 	if err != nil {
 		panic(err)
 	}

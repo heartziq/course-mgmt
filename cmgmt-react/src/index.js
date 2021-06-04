@@ -138,6 +138,9 @@ function App() {
               <li>
                 <Link to="/dashC">DashboardC</Link>
               </li>
+              <Link to="/Dashboard/4">
+                to dashboard
+              </Link>
             </ul>
           </nav>
 

@@ -1,7 +1,7 @@
 import React, { Fragment, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-const baseURL = "http://localhost:5000/api/v1/courses"
+const baseURL = "/api/v1/courses"
 
 export default function AllCourses({ useAuth }) {
     // define states
